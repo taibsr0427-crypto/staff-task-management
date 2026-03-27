@@ -25,6 +25,16 @@
   /* ── Main ── */
   main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
 
+  /* ── Section title ── */
+  .section-title {
+    font-size: .8rem;
+    font-weight: 700;
+    color: #718096;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
   /* ── Summary cards ── */
   .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
   .card {
@@ -45,6 +55,41 @@
   .card.doing  .num { color: #d4ac0d; }
   .card.done   .num { color: #27ae60; }
   .card .label { font-size: .8rem; color: #718096; font-weight: 600; letter-spacing: .04em; }
+
+  /* ── Staff workload ── */
+  .workload-section { margin-bottom: 24px; }
+  .workload-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .wcard {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    border-left: 4px solid #4472c4;
+  }
+  .wcard-name {
+    font-weight: 700;
+    font-size: .95rem;
+    color: #2d3748;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .wcard-name::before { content: "👤"; font-size: .85rem; }
+  .wcard-stats { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .wstat {
+    font-size: .75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .wstat.todo  { background: #fdebd0; color: #a04000; }
+  .wstat.doing { background: #fef9e7; color: #7d6608; }
+  .wstat.done  { background: #d5f5e3; color: #1d6a3a; }
+  .wcard-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .wcard-bar { flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+  .wcard-bar-inner { height: 100%; border-radius: 3px; background: #4472c4; transition: width .3s; }
+  .wcard-total { font-size: .75rem; color: #718096; white-space: nowrap; }
 
   /* ── Controls ── */
   .controls {
@@ -111,6 +156,17 @@
   td.no { font-weight: 700; color: #2f5496; text-align: center; width: 48px; }
   td.task { font-weight: 600; min-width: 180px; }
 
+  /* ── Staff tags ── */
+  .staff-tags { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+  .staff-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: .75rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
   /* ── Badges ── */
   .badge {
     display: inline-block;
@@ -171,11 +227,18 @@
 
 <main>
   <!-- Summary -->
+  <div class="section-title">タスク概要</div>
   <div class="summary">
     <div class="card total"><div class="label">総タスク数</div><div class="num" id="cnt-total">0</div></div>
     <div class="card todo"> <div class="label">未着手</div>   <div class="num" id="cnt-todo">0</div></div>
     <div class="card doing"><div class="label">進行中</div>   <div class="num" id="cnt-doing">0</div></div>
     <div class="card done"> <div class="label">完了</div>     <div class="num" id="cnt-done">0</div></div>
+  </div>
+
+  <!-- Staff Workload -->
+  <div class="workload-section">
+    <div class="section-title">スタッフ別タスク状況</div>
+    <div class="workload-grid" id="workload-grid"></div>
   </div>
 
   <!-- Controls -->
@@ -221,15 +284,12 @@
   <div class="guide">
     <h3>✏️ タスクの更新方法</h3>
     <ol>
-      <li>このファイルをテキストエディタ（メモ帳など）で開く</li>
-      <li>下部の <code>/* ===== タスクデータ ===== */</code> のコメントを探す</li>
-      <li><code>TASKS</code> の配列内のデータを追加・編集・削除する</li>
-      <li><code>LAST_EDITOR</code> に更新者名を入力する</li>
-      <li>保存してブラウザで開き直す</li>
+      <li>Claudeに「〇〇さんを△△タスクの担当者に追加」など日本語で話しかけるだけで自動更新されます</li>
+      <li>担当者を複数設定する場合は <code>staff: ["田中", "山田"]</code> のように配列で指定します</li>
     </ol>
   </div>
 </main>
-<footer>スタッフ タスク管理表 — ブラウザで開いてご利用ください</footer>
+<footer>スタッフ タスク管理表 — 自動デプロイ対応</footer>
 
 <script>
 /* ===== タスクデータ ===== */
@@ -239,15 +299,16 @@ const LAST_EDITOR = ""; // 最後に更新した人の名前
 
 const TASKS = [
   // { no, task, staff, category, priority, status, start, due, progress, note }
+  // staff   : 単独 ["田中"] または複数 ["田中", "山田"]
   // priority: "高" / "中" / "低"
   // status  : "未着手" / "進行中" / "完了"
   // progress: 0〜100 の数字
 
-  { no: 1, task: "動画編集①",    staff: "田中", category: "動画",  priority: "高", status: "進行中", start: "2026/03/27", due: "2026/04/05", progress: 75, note: "テロップ入力完了・編集中" },
-  { no: 2, task: "動画編集②",    staff: "", category: "動画",  priority: "高", status: "未着手", start: "2026/03/27", due: "", progress: 0, note: "" },
-  { no: 3, task: "YouTube企画",   staff: "", category: "動画",  priority: "中", status: "進行中", start: "2026/03/27", due: "", progress: 0, note: "" },
-  { no: 4, task: "商品発注",      staff: "", category: "管理",  priority: "中", status: "未着手", start: "2026/03/27", due: "", progress: 0, note: "在庫確認済み" },
-  { no: 5, task: "ストーリー投稿", staff: "", category: "SNS",  priority: "中", status: "未着手", start: "2026/03/27", due: "", progress: 0, note: "水・金更新" },
+  { no: 1, task: "動画編集①",    staff: ["田中"], category: "動画",  priority: "高", status: "進行中", start: "2026/03/27", due: "2026/04/05", progress: 75, note: "テロップ入力完了・編集中" },
+  { no: 2, task: "動画編集②",    staff: [],       category: "動画",  priority: "高", status: "未着手", start: "2026/03/27", due: "", progress: 0, note: "" },
+  { no: 3, task: "YouTube企画",   staff: [],       category: "動画",  priority: "中", status: "進行中", start: "2026/03/27", due: "", progress: 0, note: "" },
+  { no: 4, task: "商品発注",      staff: [],       category: "管理",  priority: "中", status: "未着手", start: "2026/03/27", due: "", progress: 0, note: "在庫確認済み" },
+  { no: 5, task: "ストーリー投稿", staff: [],       category: "SNS",   priority: "中", status: "未着手", start: "2026/03/27", due: "", progress: 0, note: "水・金更新" },
 ];
 
 /* ↑↑↑ ここまで ↑↑↑ */
@@ -255,6 +316,26 @@ const TASKS = [
 
 
 /* ── 以下は編集不要 ── */
+
+// スタッフごとの色（自動割り当て）
+const TAG_COLORS = [
+  { bg: "#dbeafe", color: "#1d4ed8" },
+  { bg: "#fce7f3", color: "#9d174d" },
+  { bg: "#d1fae5", color: "#065f46" },
+  { bg: "#ede9fe", color: "#5b21b6" },
+  { bg: "#ffedd5", color: "#9a3412" },
+  { bg: "#cffafe", color: "#155e75" },
+  { bg: "#fef9c3", color: "#713f12" },
+];
+const staffColorMap = {};
+let colorIndex = 0;
+function getStaffColor(name) {
+  if (!staffColorMap[name]) {
+    staffColorMap[name] = TAG_COLORS[colorIndex % TAG_COLORS.length];
+    colorIndex++;
+  }
+  return staffColorMap[name];
+}
 
 let currentStatus = 'all';
 
@@ -265,13 +346,62 @@ const progressColor = p => p === 100 ? '#27ae60' : p >= 50 ? '#4472c4' : '#e07b3
 function initPage() {
   document.getElementById('today-date').textContent =
     new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
-  document.getElementById('last-editor').textContent = LAST_EDITOR;
+  document.getElementById('last-editor').textContent = LAST_EDITOR || '—';
 
-  const staffs = [...new Set(TASKS.map(t => t.staff))].sort();
+  // 全スタッフ名を収集
+  const allStaff = [...new Set(TASKS.flatMap(t => t.staff))].filter(s => s).sort();
+
+  // 色を事前割り当て
+  allStaff.forEach(s => getStaffColor(s));
+
+  // 担当者フィルタ
   const sel = document.getElementById('sel-staff');
-  staffs.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o); });
+  allStaff.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s;
+    o.textContent = s;
+    sel.appendChild(o);
+  });
 
+  renderWorkload(allStaff);
   renderTable();
+}
+
+function renderWorkload(allStaff) {
+  const grid = document.getElementById('workload-grid');
+  grid.innerHTML = '';
+
+  if (allStaff.length === 0) {
+    grid.innerHTML = '<p style="color:#a0aec0;font-size:.85rem;">担当者が設定されていません</p>';
+    return;
+  }
+
+  allStaff.forEach(name => {
+    const myTasks = TASKS.filter(t => t.staff.includes(name));
+    const total   = myTasks.length;
+    const todo    = myTasks.filter(t => t.status === '未着手').length;
+    const doing   = myTasks.filter(t => t.status === '進行中').length;
+    const done    = myTasks.filter(t => t.status === '完了').length;
+    const doneRate = total > 0 ? Math.round((done / total) * 100) : 0;
+    const c = getStaffColor(name);
+
+    grid.innerHTML += `
+      <div class="wcard" style="border-left-color:${c.color}">
+        <div class="wcard-name" style="color:${c.color}">${name}</div>
+        <div class="wcard-stats">
+          ${todo  > 0 ? `<span class="wstat todo">未着手 ${todo}</span>` : ''}
+          ${doing > 0 ? `<span class="wstat doing">進行中 ${doing}</span>` : ''}
+          ${done  > 0 ? `<span class="wstat done">完了 ${done}</span>` : ''}
+          ${total === 0 ? '<span style="font-size:.75rem;color:#a0aec0">タスクなし</span>' : ''}
+        </div>
+        <div class="wcard-bar-wrap">
+          <div class="wcard-bar">
+            <div class="wcard-bar-inner" style="width:${doneRate}%;background:${c.color}"></div>
+          </div>
+          <div class="wcard-total">計 ${total}件</div>
+        </div>
+      </div>`;
+  });
 }
 
 function filterStatus(s) {
@@ -288,12 +418,16 @@ function renderTable() {
 
   const filtered = TASKS.filter(t => {
     if (currentStatus !== 'all' && t.status !== currentStatus) return false;
-    if (staffFilter && t.staff !== staffFilter) return false;
-    if (searchFilter && !t.task.toLowerCase().includes(searchFilter) && !t.staff.toLowerCase().includes(searchFilter)) return false;
+    if (staffFilter && !t.staff.includes(staffFilter)) return false;
+    if (searchFilter) {
+      const inTask  = t.task.toLowerCase().includes(searchFilter);
+      const inStaff = t.staff.some(s => s.toLowerCase().includes(searchFilter));
+      if (!inTask && !inStaff) return false;
+    }
     return true;
   });
 
-  // Summary (always from all tasks)
+  // Summary
   document.getElementById('cnt-total').textContent = TASKS.length;
   document.getElementById('cnt-todo').textContent  = TASKS.filter(t => t.status === '未着手').length;
   document.getElementById('cnt-doing').textContent = TASKS.filter(t => t.status === '進行中').length;
@@ -308,16 +442,24 @@ function renderTable() {
     document.getElementById('no-results').style.display = 'none';
     filtered.forEach((t, i) => {
       const color = progressColor(t.progress);
-      const overdue = t.status !== '完了' && new Date(t.due.replace(/\//g, '-')) < new Date();
+      const overdue = t.due && t.status !== '完了' && new Date(t.due.replace(/\//g, '-')) < new Date();
       const dueHtml = overdue
         ? `<span style="color:#e53e3e;font-weight:700;">⚠ ${t.due}</span>`
-        : t.due;
+        : (t.due || '—');
+
+      // Staff tags
+      const staffHtml = t.staff.length > 0
+        ? t.staff.map(s => {
+            const c = getStaffColor(s);
+            return `<span class="staff-tag" style="background:${c.bg};color:${c.color}">${s}</span>`;
+          }).join('')
+        : '<span style="color:#a0aec0;font-size:.8rem;">未設定</span>';
 
       tbody.innerHTML += `
         <tr>
           <td class="no">${i + 1}</td>
           <td class="task">${t.task}</td>
-          <td class="center">${t.staff}</td>
+          <td class="center"><div class="staff-tags">${staffHtml}</div></td>
           <td class="center">${t.category}</td>
           <td class="center"><span class="badge ${priorityClass[t.priority]}">${t.priority}</span></td>
           <td class="center"><span class="badge ${statusClass[t.status]}">${t.status}</span></td>
@@ -329,7 +471,7 @@ function renderTable() {
               <div class="prog-pct">${t.progress}%</div>
             </div>
           </td>
-          <td>${t.note}</td>
+          <td>${t.note || '—'}</td>
         </tr>`;
     });
   }
