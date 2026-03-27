@@ -73,7 +73,11 @@
     padding: 16px 18px;
     box-shadow: 0 1px 4px rgba(0,0,0,.08);
     border-left: 4px solid #4472c4;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
   }
+  .wcard:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.13); }
+  .wcard.active-filter { box-shadow: 0 0 0 3px #4472c4; }
   .wcard-name {
     font-weight: 700;
     font-size: .95rem;
@@ -82,10 +86,9 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    cursor: pointer;
     transition: opacity .15s;
   }
-  .wcard-name:hover { opacity: .7; text-decoration: underline; }
+  .wcard:hover .wcard-name { text-decoration: underline; opacity: .8; }
   .wcard-name::before { content: "👤"; font-size: .85rem; }
   .wcard.active-filter { box-shadow: 0 0 0 2px #4472c4; }
   .wcard-stats { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -402,8 +405,8 @@ function renderWorkload(allStaff) {
     const c = getStaffColor(name);
 
     grid.innerHTML += `
-      <div class="wcard" style="border-left-color:${c.color}">
-        <div class="wcard-name" style="color:${c.color}" onclick="filterByStaff('${name}')">${name}</div>
+      <div class="wcard" style="border-left-color:${c.color}" onclick="filterByStaff('${name}')">
+        <div class="wcard-name" style="color:${c.color}">${name}</div>
         <div class="wcard-stats">
           ${todo  > 0 ? `<span class="wstat todo">未着手 ${todo}</span>` : ''}
           ${doing > 0 ? `<span class="wstat doing">進行中 ${doing}</span>` : ''}
@@ -475,6 +478,19 @@ function renderTable() {
       if (!inTask && !inStaff) return false;
     }
     return true;
+  });
+
+  // ソート：完了を下、期限近い順を上、期限なしは最後
+  filtered.sort((a, b) => {
+    const aDone = a.status === '完了' ? 1 : 0;
+    const bDone = b.status === '完了' ? 1 : 0;
+    if (aDone !== bDone) return aDone - bDone;
+    const aDate = a.due ? new Date(a.due.replace(/\//g, '-')) : null;
+    const bDate = b.due ? new Date(b.due.replace(/\//g, '-')) : null;
+    if (aDate && bDate) return aDate - bDate;
+    if (aDate) return -1;
+    if (bDate) return 1;
+    return 0;
   });
 
   // Summary
