@@ -282,7 +282,6 @@
           <th>タスク名</th>
           <th>担当者</th>
           <th>カテゴリ</th>
-          <th>優先度</th>
           <th>ステータス</th>
           <th>開始日</th>
           <th>期限</th>
@@ -527,7 +526,6 @@ function renderTable() {
           <td class="task">${t.task}</td>
           <td class="center"><div class="staff-tags">${staffHtml}</div></td>
           <td class="center">${t.category}</td>
-          <td class="center"><span class="badge ${priorityClass[t.priority]}">${t.priority}</span></td>
           <td class="center"><span class="badge ${statusClass[t.status]}">${t.status}</span></td>
           <td class="center">${t.start}</td>
           <td class="center">${dueHtml}</td>
