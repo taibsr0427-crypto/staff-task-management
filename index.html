@@ -297,6 +297,9 @@
 
 const LAST_EDITOR = ""; // 最後に更新した人の名前
 
+// ===== スタッフ一覧 =====
+const STAFF = ["櫻井", "本田", "中野", "田中", "冨山", "神谷", "加藤", "杉岡"];
+
 const TASKS = [
   // { no, task, staff, category, priority, status, start, due, progress, note }
   // staff   : 単独 ["田中"] または複数 ["田中", "山田"]
@@ -348,8 +351,9 @@ function initPage() {
     new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
   document.getElementById('last-editor').textContent = LAST_EDITOR || '—';
 
-  // 全スタッフ名を収集
-  const allStaff = [...new Set(TASKS.flatMap(t => t.staff))].filter(s => s).sort();
+  // STAFFリストをベースに、タスクに含まれる未登録スタッフも追加
+  const taskStaff = [...new Set(TASKS.flatMap(t => t.staff))].filter(s => s);
+  const allStaff = [...new Set([...STAFF, ...taskStaff])];
 
   // 色を事前割り当て
   allStaff.forEach(s => getStaffColor(s));
