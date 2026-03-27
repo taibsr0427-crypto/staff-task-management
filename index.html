@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スタッフ タスク管理表</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Arial', 'Helvetica Neue', sans-serif; background: #f0f4f8; color: #1a202c; }
+
+  /* ── Header ── */
+  header {
+    background: linear-gradient(135deg, #2f5496, #4472c4);
+    color: #fff;
+    padding: 24px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  }
+  header h1 { font-size: 1.6rem; letter-spacing: .05em; }
+  header .meta { font-size: .85rem; opacity: .85; text-align: right; }
+  header .meta span { display: block; }
+
+  /* ── Main ── */
+  main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  /* ── Summary cards ── */
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 18px 20px;
+    text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    border-top: 4px solid;
+  }
+  .card.total  { border-color: #2f5496; }
+  .card.todo   { border-color: #e07b39; }
+  .card.doing  { border-color: #d4ac0d; }
+  .card.done   { border-color: #27ae60; }
+  .card .num { font-size: 2.2rem; font-weight: 700; margin: 4px 0; }
+  .card.total  .num { color: #2f5496; }
+  .card.todo   .num { color: #e07b39; }
+  .card.doing  .num { color: #d4ac0d; }
+  .card.done   .num { color: #27ae60; }
+  .card .label { font-size: .8rem; color: #718096; font-weight: 600; letter-spacing: .04em; }
+
+  /* ── Controls ── */
+  .controls {
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  }
+  .controls label { font-size: .85rem; color: #4a5568; font-weight: 600; }
+  .controls select, .controls input[type="text"] {
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: .88rem;
+    color: #2d3748;
+    background: #f7fafc;
+    outline: none;
+  }
+  .controls select:focus, .controls input:focus { border-color: #4472c4; }
+  .filter-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter-btn {
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 2px solid transparent;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .filter-btn.all    { background: #ebf0fa; color: #2f5496; border-color: #2f5496; }
+  .filter-btn.todo   { background: #fdebd0; color: #a04000; border-color: #e07b39; }
+  .filter-btn.doing  { background: #fef9e7; color: #7d6608; border-color: #d4ac0d; }
+  .filter-btn.done   { background: #d5f5e3; color: #1d6a3a; border-color: #27ae60; }
+  .filter-btn.active, .filter-btn:hover { opacity: 1; filter: brightness(.92); }
+  .filter-btn:not(.active) { opacity: .65; }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  table { width: 100%; border-collapse: collapse; background: #fff; font-size: .88rem; }
+  thead th {
+    background: #2f5496;
+    color: #fff;
+    padding: 12px 14px;
+    text-align: center;
+    font-weight: 700;
+    letter-spacing: .04em;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  thead th:first-child { border-radius: 10px 0 0 0; }
+  thead th:last-child  { border-radius: 0 10px 0 0; }
+  tbody tr { transition: background .1s; }
+  tbody tr:nth-child(even) { background: #f7fafc; }
+  tbody tr:hover { background: #ebf0fa; }
+  tbody td { padding: 11px 14px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+  td.center { text-align: center; }
+  td.no { font-weight: 700; color: #2f5496; text-align: center; width: 48px; }
+  td.task { font-weight: 600; min-width: 180px; }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: .78rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .badge.todo  { background: #fdebd0; color: #a04000; }
+  .badge.doing { background: #fef9e7; color: #7d6608; }
+  .badge.done  { background: #d5f5e3; color: #1d6a3a; }
+  .badge.high  { background: #fde8e8; color: #c0392b; }
+  .badge.mid   { background: #fef3d0; color: #9a6e00; }
+  .badge.low   { background: #e8f8f5; color: #1a7a56; }
+
+  /* ── Progress bar ── */
+  .prog-wrap { display: flex; align-items: center; gap: 8px; min-width: 110px; }
+  .prog-bar { flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+  .prog-bar-inner { height: 100%; border-radius: 4px; transition: width .3s; }
+  .prog-pct { font-size: .8rem; font-weight: 700; color: #4a5568; width: 34px; text-align: right; }
+
+  /* ── No results ── */
+  .no-results { text-align: center; padding: 32px; color: #a0aec0; font-size: .95rem; display: none; }
+
+  /* ── Update guide ── */
+  .guide {
+    margin-top: 28px;
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    border-left: 4px solid #4472c4;
+  }
+  .guide h3 { font-size: .95rem; color: #2f5496; margin-bottom: 10px; }
+  .guide ol { padding-left: 18px; font-size: .85rem; color: #4a5568; line-height: 2; }
+  .guide code {
+    background: #edf2f7;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'Courier New', monospace;
+    font-size: .82rem;
+    color: #c0392b;
+  }
+
+  footer { text-align: center; padding: 16px; font-size: .78rem; color: #a0aec0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 スタッフ タスク管理表</h1>
+  <div class="meta">
+    <span id="today-date"></span>
+    <span>更新者: <strong id="last-editor">—</strong></span>
+  </div>
+</header>
+
+<main>
+  <!-- Summary -->
+  <div class="summary">
+    <div class="card total"><div class="label">総タスク数</div><div class="num" id="cnt-total">0</div></div>
+    <div class="card todo"> <div class="label">未着手</div>   <div class="num" id="cnt-todo">0</div></div>
+    <div class="card doing"><div class="label">進行中</div>   <div class="num" id="cnt-doing">0</div></div>
+    <div class="card done"> <div class="label">完了</div>     <div class="num" id="cnt-done">0</div></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <label>ステータス：</label>
+    <div class="filter-btns">
+      <button class="filter-btn all active"  onclick="filterStatus('all')">すべて</button>
+      <button class="filter-btn todo"        onclick="filterStatus('未着手')">未着手</button>
+      <button class="filter-btn doing"       onclick="filterStatus('進行中')">進行中</button>
+      <button class="filter-btn done"        onclick="filterStatus('完了')">完了</button>
+    </div>
+    <label style="margin-left:12px">担当者：</label>
+    <select id="sel-staff" onchange="renderTable()">
+      <option value="">全員</option>
+    </select>
+    <label style="margin-left:12px">検索：</label>
+    <input type="text" id="search-box" placeholder="タスク名・担当者..." oninput="renderTable()">
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table id="task-table">
+      <thead>
+        <tr>
+          <th>No.</th>
+          <th>タスク名</th>
+          <th>担当者</th>
+          <th>カテゴリ</th>
+          <th>優先度</th>
+          <th>ステータス</th>
+          <th>開始日</th>
+          <th>期限</th>
+          <th>進捗</th>
+          <th>備考</th>
+        </tr>
+      </thead>
+      <tbody id="task-body"></tbody>
+    </table>
+    <div class="no-results" id="no-results">該当するタスクがありません</div>
+  </div>
+
+  <!-- Update guide -->
+  <div class="guide">
+    <h3>✏️ タスクの更新方法</h3>
+    <ol>
+      <li>このファイルをテキストエディタ（メモ帳など）で開く</li>
+      <li>下部の <code>/* ===== タスクデータ ===== */</code> のコメントを探す</li>
+      <li><code>TASKS</code> の配列内のデータを追加・編集・削除する</li>
+      <li><code>LAST_EDITOR</code> に更新者名を入力する</li>
+      <li>保存してブラウザで開き直す</li>
+    </ol>
+  </div>
+</main>
+<footer>スタッフ タスク管理表 — ブラウザで開いてご利用ください</footer>
+
+<script>
+/* ===== タスクデータ ===== */
+/* ↓↓↓ ここを編集してください ↓↓↓ */
+
+const LAST_EDITOR = ""; // 最後に更新した人の名前
+
+const TASKS = [
+  // { no, task, staff, category, priority, status, start, due, progress, note }
+  // priority: "高" / "中" / "低"
+  // status  : "未着手" / "進行中" / "完了"
+  // progress: 0〜100 の数字
+
+  { no: 1, task: "動画編集①",    staff: "田中", category: "動画",  priority: "高", status: "進行中", start: "2026/03/27", due: "2026/04/05", progress: 75, note: "テロップ入力完了・編集中" },
+  { no: 2, task: "動画編集②",    staff: "", category: "動画",  priority: "高", status: "未着手", start: "2026/03/27", due: "", progress: 0, note: "" },
+  { no: 3, task: "YouTube企画",   staff: "", category: "動画",  priority: "中", status: "進行中", start: "2026/03/27", due: "", progress: 0, note: "" },
+  { no: 4, task: "商品発注",      staff: "", category: "管理",  priority: "中", status: "未着手", start: "2026/03/27", due: "", progress: 0, note: "在庫確認済み" },
+  { no: 5, task: "ストーリー投稿", staff: "", category: "SNS",  priority: "中", status: "未着手", start: "2026/03/27", due: "", progress: 0, note: "水・金更新" },
+];
+
+/* ↑↑↑ ここまで ↑↑↑ */
+/* ====================== */
+
+
+/* ── 以下は編集不要 ── */
+
+let currentStatus = 'all';
+
+const statusClass = { "未着手": "todo", "進行中": "doing", "完了": "done" };
+const priorityClass = { "高": "high", "中": "mid", "低": "low" };
+const progressColor = p => p === 100 ? '#27ae60' : p >= 50 ? '#4472c4' : '#e07b39';
+
+function initPage() {
+  document.getElementById('today-date').textContent =
+    new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('last-editor').textContent = LAST_EDITOR;
+
+  const staffs = [...new Set(TASKS.map(t => t.staff))].sort();
+  const sel = document.getElementById('sel-staff');
+  staffs.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o); });
+
+  renderTable();
+}
+
+function filterStatus(s) {
+  currentStatus = s;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  const map = { all: 'all', '未着手': 'todo', '進行中': 'doing', '完了': 'done' };
+  document.querySelector(`.filter-btn.${map[s]}`).classList.add('active');
+  renderTable();
+}
+
+function renderTable() {
+  const staffFilter  = document.getElementById('sel-staff').value;
+  const searchFilter = document.getElementById('search-box').value.trim().toLowerCase();
+
+  const filtered = TASKS.filter(t => {
+    if (currentStatus !== 'all' && t.status !== currentStatus) return false;
+    if (staffFilter && t.staff !== staffFilter) return false;
+    if (searchFilter && !t.task.toLowerCase().includes(searchFilter) && !t.staff.toLowerCase().includes(searchFilter)) return false;
+    return true;
+  });
+
+  // Summary (always from all tasks)
+  document.getElementById('cnt-total').textContent = TASKS.length;
+  document.getElementById('cnt-todo').textContent  = TASKS.filter(t => t.status === '未着手').length;
+  document.getElementById('cnt-doing').textContent = TASKS.filter(t => t.status === '進行中').length;
+  document.getElementById('cnt-done').textContent  = TASKS.filter(t => t.status === '完了').length;
+
+  const tbody = document.getElementById('task-body');
+  tbody.innerHTML = '';
+
+  if (filtered.length === 0) {
+    document.getElementById('no-results').style.display = 'block';
+  } else {
+    document.getElementById('no-results').style.display = 'none';
+    filtered.forEach((t, i) => {
+      const color = progressColor(t.progress);
+      const overdue = t.status !== '完了' && new Date(t.due.replace(/\//g, '-')) < new Date();
+      const dueHtml = overdue
+        ? `<span style="color:#e53e3e;font-weight:700;">⚠ ${t.due}</span>`
+        : t.due;
+
+      tbody.innerHTML += `
+        <tr>
+          <td class="no">${i + 1}</td>
+          <td class="task">${t.task}</td>
+          <td class="center">${t.staff}</td>
+          <td class="center">${t.category}</td>
+          <td class="center"><span class="badge ${priorityClass[t.priority]}">${t.priority}</span></td>
+          <td class="center"><span class="badge ${statusClass[t.status]}">${t.status}</span></td>
+          <td class="center">${t.start}</td>
+          <td class="center">${dueHtml}</td>
+          <td>
+            <div class="prog-wrap">
+              <div class="prog-bar"><div class="prog-bar-inner" style="width:${t.progress}%;background:${color}"></div></div>
+              <div class="prog-pct">${t.progress}%</div>
+            </div>
+          </td>
+          <td>${t.note}</td>
+        </tr>`;
+    });
+  }
+}
+
+initPage();
+</script>
+</body>
+</html>
