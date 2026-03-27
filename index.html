@@ -74,8 +74,12 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    cursor: pointer;
+    transition: opacity .15s;
   }
+  .wcard-name:hover { opacity: .7; text-decoration: underline; }
   .wcard-name::before { content: "👤"; font-size: .85rem; }
+  .wcard.active-filter { box-shadow: 0 0 0 2px #4472c4; }
   .wcard-stats { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
   .wstat {
     font-size: .75rem;
@@ -391,7 +395,7 @@ function renderWorkload(allStaff) {
 
     grid.innerHTML += `
       <div class="wcard" style="border-left-color:${c.color}">
-        <div class="wcard-name" style="color:${c.color}">${name}</div>
+        <div class="wcard-name" style="color:${c.color}" onclick="filterByStaff('${name}')">${name}</div>
         <div class="wcard-stats">
           ${todo  > 0 ? `<span class="wstat todo">未着手 ${todo}</span>` : ''}
           ${doing > 0 ? `<span class="wstat doing">進行中 ${doing}</span>` : ''}
@@ -406,6 +410,26 @@ function renderWorkload(allStaff) {
         </div>
       </div>`;
   });
+}
+
+function filterByStaff(name) {
+  const sel = document.getElementById('sel-staff');
+  if (sel.value === name) {
+    // 同じ人を再クリックしたら解除
+    sel.value = '';
+    document.querySelectorAll('.wcard').forEach(c => c.classList.remove('active-filter'));
+  } else {
+    sel.value = name;
+    document.querySelectorAll('.wcard').forEach(c => c.classList.remove('active-filter'));
+    document.querySelectorAll('.wcard').forEach(c => {
+      if (c.querySelector('.wcard-name') && c.querySelector('.wcard-name').textContent.trim() === name) {
+        c.classList.add('active-filter');
+      }
+    });
+  }
+  // テーブルまでスクロール
+  document.querySelector('.controls').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  renderTable();
 }
 
 function filterStatus(s) {
