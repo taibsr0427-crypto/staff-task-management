@@ -44,7 +44,15 @@
     text-align: center;
     box-shadow: 0 1px 4px rgba(0,0,0,.08);
     border-top: 4px solid;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, opacity .15s;
   }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.13); }
+  .card.active-filter { box-shadow: 0 0 0 3px #4472c4; }
+  .card.total.active-filter  { box-shadow: 0 0 0 3px #2f5496; }
+  .card.todo.active-filter   { box-shadow: 0 0 0 3px #e07b39; }
+  .card.doing.active-filter  { box-shadow: 0 0 0 3px #d4ac0d; }
+  .card.done.active-filter   { box-shadow: 0 0 0 3px #27ae60; }
   .card.total  { border-color: #2f5496; }
   .card.todo   { border-color: #e07b39; }
   .card.doing  { border-color: #d4ac0d; }
@@ -233,10 +241,10 @@
   <!-- Summary -->
   <div class="section-title">タスク概要</div>
   <div class="summary">
-    <div class="card total"><div class="label">総タスク数</div><div class="num" id="cnt-total">0</div></div>
-    <div class="card todo"> <div class="label">未着手</div>   <div class="num" id="cnt-todo">0</div></div>
-    <div class="card doing"><div class="label">進行中</div>   <div class="num" id="cnt-doing">0</div></div>
-    <div class="card done"> <div class="label">完了</div>     <div class="num" id="cnt-done">0</div></div>
+    <div class="card total" onclick="filterByCard('all')"  title="すべて表示"><div class="label">総タスク数</div><div class="num" id="cnt-total">0</div></div>
+    <div class="card todo"  onclick="filterByCard('未着手')" title="未着手を表示"><div class="label">未着手</div>   <div class="num" id="cnt-todo">0</div></div>
+    <div class="card doing" onclick="filterByCard('進行中')" title="進行中を表示"><div class="label">進行中</div>   <div class="num" id="cnt-doing">0</div></div>
+    <div class="card done"  onclick="filterByCard('完了')"  title="完了を表示"><div class="label">完了</div>     <div class="num" id="cnt-done">0</div></div>
   </div>
 
   <!-- Staff Workload -->
@@ -410,6 +418,20 @@ function renderWorkload(allStaff) {
         </div>
       </div>`;
   });
+}
+
+function filterByCard(status) {
+  const cardMap = { all: 'total', '未着手': 'todo', '進行中': 'doing', '完了': 'done' };
+  // 同じカードを再クリックしたら解除
+  if (currentStatus === status && status !== 'all') {
+    filterStatus('all');
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('active-filter'));
+  } else {
+    filterStatus(status);
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('active-filter'));
+    document.querySelector(`.card.${cardMap[status]}`).classList.add('active-filter');
+    document.querySelector('.controls').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 function filterByStaff(name) {
